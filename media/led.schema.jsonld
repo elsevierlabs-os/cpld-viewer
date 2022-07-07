@@ -1,0 +1,143 @@
+{
+  "@context": {
+      "led": "https://data.elsevier.com/schema/led/",
+      "edm": "https://data.elsevier.com/schema/edm/",
+      "sh": "http://www.w3.org/ns/shacl#",
+      "dct": "http://purl.org/dc/terms/",
+      "oa": "http://www.w3.org/ns/oa#",
+      "html": "http://www.w3.org/1999/xhtml#",
+
+      "id": "@id",
+      "type": "@type",
+
+      "conformsTo": "dct:conformsTo",
+      "shapesGraph": {
+        "@id": "sh:shapesGraph",
+        "@type": "@id"
+      }
+  },
+  "@graph": {
+    "@context": {
+      "@language": "en",
+
+      "pav": "http://purl.org/pav/",
+      "dc": "http://purl.org/dc/elements/1.1/",
+      "owl": "http://www.w3.org/2002/07/owl#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "sh": "http://www.w3.org/ns/shacl#",
+      "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+
+      "owl:sameAs": { "@type": "@id" },
+      "owl:imports": { "@type": "@id" },
+
+      "rdfs:domain": { "@type": "@id" },
+      "rdfs:range": { "@type": "@id" },
+
+      "sh:shapesGraph": { "@type": "@id" },
+      "sh:targetClass": { "@type": "@id"},
+      "sh:path": { "@type": "@id" },
+      "sh:node": { "@type": "@id" },
+      "sh:nodeKind": { "@type": "@id" },
+      "sh:class": { "@type": "@id" },
+      "sh:datatype": { "@type": "@id" },
+      "sh:property": { "@type": "@id" },
+      "sh:or": {"@container": "@list"},
+
+      "edm:hasPart": {
+        "@type": "@id"
+      },
+      "edm:hasAuthor": {
+        "@type": "@id"
+      },
+
+      "id": "@id",
+      "type": "@type",
+      "conformsTo": "dct:conformsTo"
+    },
+    "@id": "https://data.elsevier.com/schema/led/",
+    "@graph": [
+      {
+        "@id": "led:",
+        "@type": "owl:Ontology",
+        "dc:creator": "Rinke Hoekstra",
+        "dct:description": "The LED ontology defines constraints for documents that conform to the Content Profiles and Linked Document standard. These constraints are largely expressed against entity types defined in the Enterprise Data Model (EDM)",
+        "dct:created": "2020-02-17",
+        "dct:source": "https://confluence.cbsels.com/display/arch/CR+Content+Profiles+and+Linked+Document+Standard",
+        "rdfs:label": "Linked Elsevier Document (LED)",
+        "owl:versionInfo": "v1.0",
+        "dcat:theme": "Architecture",
+        "vann:preferredNamespaceUri": "https://data.elsevier.com/schema/led/",
+        "vann:preferredNamespacePrefix": "led",
+        "owl:imports": "edm:"
+      },
+      {
+        "@id": "dct:conformsTo",
+        "rdfs:label": "conformsTo",
+        "@type": "owl:DatatypeProperty",
+        "rdfs:description": "Indicates that a document conforms to some specification without assuming an automated mechanism for validating the conformance. For instance, the led:conformsTo relation may point at a Web page that describes the specification in natural language.",
+        "rdfs:range": "xsd:anyURI"
+      },
+      {
+        "@id": "led:ArticleShape",
+        "@type": "sh:NodeShape",
+        "sh:targetClass": ["edm:Article", "edm:ClinicalOverview"],
+        "sh:property": [
+          {
+          "@type": "sh:PropertyShape",
+          "sh:path": "dct:conformsTo",
+          "sh:datatype": "xsd:anyURI"
+          },
+          {
+          "@type": "sh:PropertyShape",
+          "sh:path": "sh:shapesGraph",
+          "sh:nodeKind": "sh:IRI"
+          },
+          {
+          "@type": "sh:PropertyShape",
+          "sh:path": "dc:creator",
+          "sh:minCount": 1,
+          "sh:or": [{"sh:datatype": "xsd:string"}, {"sh:nodeKind": "sh:IRI"}]
+          },
+          {
+          "@type": "sh:PropertyShape",
+          "sh:path": "pav:createdOn",
+          "sh:minCount": 1,
+          "sh:datatype": "xsd:date"
+          },
+          {
+          "@type": "sh:PropertyShape",
+          "sh:path": "edm:copyrightYear",
+          "sh:minCount": 1,
+          "sh:datatype": "xsd:date"
+          },
+          {
+          "@type": "sh:PropertyShape",
+          "sh:path": "edm:copyrightLine",
+          "sh:minCount": 1,
+          "sh:datatype": "xsd:string"
+          },
+          {
+          "@type": "sh:PropertyShape",
+          "sh:path": "edm:hasAuthor",
+          "sh:class": "edm:Author"
+          },
+          {
+          "@type": "sh:PropertyShape",
+          "sh:path": "edm:hasPart",
+          "sh:node": "led:PartShape"
+          }
+        ]
+      },
+      {
+        "@id": "led:PartShape",
+        "@type": "sh:NodeShape",
+        "rdfs:comment": "No document part may be further subdivided",
+        "sh:not": {
+          "@type": "sh:PropertyShape",
+          "sh:path": "edm:hasPart",
+          "sh:minCount": 1
+        }
+      }
+    ]
+  }
+}

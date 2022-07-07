@@ -1,0 +1,114 @@
+{
+  "name": "cpld-viewer",
+  "displayName": "CP/LD Viewer",
+  "description": "VSCode Extension for Content Profiles / Linked Documents",
+  "publisher": "Elsevier",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "repository": "https://github.com/elsevierlabs-os/cpld-viewer.git",
+  "icon": "media/img/cpld-icon.png",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.61.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:cpld.show"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cpld.show",
+        "title": "CPLD Viewer"
+      }
+    ],
+    "configuration": {
+      "title": "CPLD Viewer",
+      "properties": {
+        "cpld.allowLocalStyles": {
+          "type": "boolean",
+          "default": false,
+          "description": "Should the extension allow the loading of local CSS styles from a 'media' folder relative to the HTML file? (NB: this is less secure)"
+        },
+        "cpld.allowLocalImages": {
+          "type": "boolean",
+          "default": false,
+          "description": "Should the extension allow the loading of local images from a 'media' folder relative to the HTML file? (NB: this is less secure)"
+        },
+        "cpld.alwaysDereferenceIRIs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Should the extension attempt to dereference every clicked IRI?"
+        },
+        "cpld.loadLocalContexts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Should the extension try to load local (non-URI) contexts?"
+        },
+        "cpld.proxyEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Should the extension use a proxy to dereference Linked Data?"
+        },
+        "cpld.proxyURLprefix": {
+          "type": "string",
+          "default": "https://your.linked.data.proxy/example.browse?uri=",
+          "description": "Proxy URL prefix to use when dereferencing Linked Data. Needs to be CORS enabled."
+        },
+        "cpld.hasPartIRI": {
+          "type": "string",
+          "default": "https://schema.org/hasPart",
+          "description": "IRI of the hasPart property to use."
+        }
+
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "npm run build && tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "vscode:prepublish-esbuild": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --external:canvas --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "test-compile": "tsc -p ./",
+    "build": "webpack"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.3",
+    "@types/jsdom": "^16.2.13",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "14.x",
+    "@types/vscode": "^1.59.0",
+    "@typescript-eslint/eslint-plugin": "^4.26.0",
+    "@typescript-eslint/parser": "^4.26.0",
+    "bootstrap4": "npm:bootstrap@^4.6.1",
+    "buffer": "^6.0.3",
+    "css-loader": "^6.7.1",
+    "esbuild": "^0.13.6",
+    "eslint": "^7.27.0",
+    "events": "^3.3.0",
+    "glob": "^7.1.7",
+    "glob-parent": "^6.0.2",
+    "jquery": "^3.6.0",
+    "jquery.scrollto": "^2.1.3",
+    "jsonld": "^6.0.0",
+    "mocha": "^10.0.0",
+    "rdflib": "^2.2.19",
+    "shacl-js": "^0.0.1",
+    "style-loader": "^3.3.1",
+    "typescript": "^4.3.2",
+    "vscode-test": "^1.5.2",
+    "webpack": "^5.73.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "dependencies": {
+    "jsdom": "^16.2.13"
+  }
+}

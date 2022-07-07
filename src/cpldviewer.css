@@ -1,0 +1,213 @@
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  src: url('./fonts/Atkinson-Hyperlegible-Regular-102.eot') format('embedded-opentype'),
+       url('./fonts/Atkinson-Hyperlegible-Regular-102a.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible"; 
+  src: url('./fonts/Atkinson-Hyperlegible-Bold-102.eot') format('embedded-opentype'),
+       url('./fonts/Atkinson-Hyperlegible-Bold-102a.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible"; 
+  src: url('./fonts/Atkinson-Hyperlegible-Italic-102.eot') format('embedded-opentype'),
+       url('./fonts/Atkinson-Hyperlegible-Italic-102a.woff2') format('woff2');
+  font-weight: normal;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible"; 
+  src: url('./fonts/Atkinson-Hyperlegible-BoldItalic-102.eot') format('embedded-opentype'),
+       url('./fonts/Atkinson-Hyperlegible-BoldItalic-102a.woff2') format('woff2');
+  font-weight: bold;
+  font-style: italic;
+}
+
+body {
+  font-family: "Atkinson Hyperlegible", Helvetica, sans-serif;
+}
+
+
+/* Giant goldfish color palette */
+a.subject {
+  display: inline-block;
+  background: #69D2E7;
+  padding: 3px 7px 3px 7px;
+  margin: 1px;
+  border-radius: 0.2em;
+  border: 0;
+  line-height: 1.2em;
+  white-space: nowrap;
+  color: #444d56;
+}
+
+a.predicate {
+  display: inline-block;
+  background: #A7DBD8;
+  padding: 3px 7px 3px 7px;
+  margin: 1px;
+  border-radius: 0.2em;
+  border: 0;
+  line-height: 1.2em;
+  white-space: nowrap;
+  color: #444d56;
+}
+
+a.object {
+  display: inline-block;
+  background: #E0E4CC;
+  padding: 3px 7px 3px 7px;
+  margin: 1px;
+  border-radius: 0.2em;
+  border: 0;
+  line-height: 1.2em;
+  white-space: nowrap;
+  color: #444d56;
+}
+
+.cpldcss-box {
+  /* box-shadow: 5px 5px 10px 2px rgba(43,84,95, .7); */ /* AST */
+  /* box-shadow: 5px 5px 10px 2px rgba(43,84,95, .7); */
+  /* box-shadow: 0px 0px 2px 2px rgba(43,84,95, .2); */
+  background: rgba(250,105,0,.2); /* Unreal food pills */
+}
+
+.toast-body {
+  max-height: 500px;
+  overflow-y: scroll;
+}
+
+.cpldcss-highlight {
+  /* border: 1; */ /* AST */
+  /* background: #E0E400; */ /* AST */
+  background: #FA6900; /* Unreal food pills */
+}
+
+.cpldcss-highlight .text-primary {
+  color: white!important;
+}
+
+.cpldcss-DEFUNC {
+  box-shadow: 0px 0px 15px 2px rgba(103,210,231, 1);
+  box-shadow: 3px 3px 20px 1px rgba(100,124,0, 1);
+  box-shadow: 0px 0px 1px 1px rgba(200,224,0, 1);
+  box-shadow: -4px -4px +4px 0px rgba(250,105,0, 1);
+  box-shadow: -5px 0px 0px 0px #E0E400;
+}
+
+#cpld-body-left {
+  flex: 0 0 15px;
+}
+
+#cpld-body-right {
+  flex: 0 0 350px;
+}
+
+#cpld-body-content {
+  overflow-y: auto;
+  font-family: "Atkinson Hyperlegible";
+}
+
+:target {
+  scroll-margin-top: 300px;
+}
+
+#cpld-navbar {
+  padding-left: 36px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: rgb(80, 80, 80);
+}
+
+h1 {
+  font-size: 30px;
+  font-weight: normal;
+  margin-top: 32px!important;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: normal;
+  margin-top: 32px!important;
+}
+
+h3 {
+  font-size: 20px;
+  font-weight: normal;
+}
+
+#cpld-body-content p, #cpld-body-content div {
+  font-size: 18px;
+  color: rgb(46, 46, 46);
+} 
+
+#cpld-body-content p {
+  display: block;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+
+  margin: 0 0 16px;
+}
+
+
+#cpld-body-content section {
+  margin-bottom: 8px;
+}
+
+header span {
+  color: rgb(12, 125, 187);
+}
+
+#cpld-body-content a {
+  color: rgb(12, 125, 187);
+  max-width: 850px;
+}
+
+/* dl {
+  display: grid;
+  grid-template-columns: max-content auto;
+}
+
+dt {
+  grid-column-start: 1;
+  padding-right: 1em;
+}
+
+dd {
+  grid-column-start: 2;
+} */
+
+dl {
+  display: block;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+}
+
+dd {
+  display: block;
+  margin-inline-start: 40px;
+}
+
+dt {
+  display: block;
+  float: left;
+  padding-right: 10px;
+}
+
+
+dd p:first {
+  margin-block-start: 0em;
+}
+
+dd p:last {
+  margin-block-end: 0em;
+}
