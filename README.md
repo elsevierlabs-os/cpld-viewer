@@ -1,6 +1,6 @@
 # Content Profile and Linked Document Viewer
 
-The CP/LD viewer is a Visual Studio Code extension that allows you to view and browse CP/LD compliant documents inside VSCode. CP/LD is a new standard developed by the NISO CP/LD Working group, see <https://github.com/niso-standards/cpld>. In short, a CP/LD file is an HTML file that links or embeds JSON-LD (akin to Google Structured Data).
+The CP/LD viewer is a Visual Studio Code extension that allows you to view and browse CP/LD compliant documents inside VSCode. CP/LD is a new standard developed by the NISO CP/LD Working group, see <https://github.com/niso-standards/cpld> and <https://www.niso.org/standards-committees/cpld>. In short, a CP/LD file is an HTML file that links or embeds JSON-LD (akin to Google Structured Data).
 
 ## License
 This code was originally developed by Elsevier B.V. (@RinkeHoekstra, @andyElsevier) and was contributed to the NISO CP/LD working group under an MIT license. See the `LICENSE.md` file for details.
