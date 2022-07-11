@@ -19,7 +19,7 @@ This code was originally developed by Elsevier B.V. (@RinkeHoekstra, @andyElsevi
 
 ## Installation
 
-Download a `*.vsix` package from the releases page for this repository and run the `"Install from VSIX..."` command in VSCode.
+Install the package directly from the VSCode Marketplace, or download a `*.vsix` package from the releases page for this repository and run the `"Install from VSIX..."` command in VSCode.
 
 The `CPLD Viewer` command will appear in your command pallette (`Cmd-Shift-P` or `Ctrl-Shift-P`) whenever an HTML file is opened in your editor. The CPLD viewer will appear in a new pane next to your open document.
 
