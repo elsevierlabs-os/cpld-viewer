@@ -244,11 +244,20 @@ async function getCPLDWebviewContent(webview: vscode.Webview, extensionUri: vsco
 			let expandedContextArray:any[] = [];
 			for (let c in context) {
 				console.log(context[c]);
-				if (typeof context[c] == 'string') {
-					const json_context_path = path.join(dirname, context[c]);
-					const json_context_doc = await vscode.workspace.openTextDocument(json_context_path);
-					expandedContextArray.push(JSON.parse(json_context_doc.getText()));
-					vscode.window.showInformationMessage(`Including context from ${json_context_path}`);
+				if (typeof context[c] == 'string' && !context[c].startsWith('http')) {
+					console.log("Context is a local file");
+					try {
+						const json_context_path = path.join(dirname, context[c]);
+						const json_context_doc = await vscode.workspace.openTextDocument(json_context_path);
+						expandedContextArray.push(JSON.parse(json_context_doc.getText()));
+						vscode.window.showInformationMessage(`Including context from ${json_context_path}`);
+					} catch (e: any) {
+						vscode.window.showErrorMessage(e.message);
+						console.log(e);
+						console.log("Could not load context from file, perhaps it's not a file :-)");
+						// Just passing through the value in the context array, as it may be an object or another array.
+						expandedContextArray.push(context[c]);
+					}
 				} else {
 					// Just passing through the value in the context array, as it may be an object or another array.
 					expandedContextArray.push(context[c]);
@@ -261,7 +270,7 @@ async function getCPLDWebviewContent(webview: vscode.Webview, extensionUri: vsco
 	} catch (e: any) {
 		vscode.window.showErrorMessage(e.message);
 		console.log(e);
-		console.log("Could not load context from file, perhaps it's not a file :-)");
+		console.log("Something went wrong while trying to load contexts from local files.");
 	}
 	return json_object;
 }
