@@ -1,19 +1,29 @@
 import $ from 'jquery';
 window.jQuery = $;
 window.$ = $;
-import 'jquery.scrollTo';
+import 'jquery.scrollto';
 import 'bootstrap4';
-import 'jsonld';
+const jsonld = require('jsonld');
 var $rdf = require('rdflib');
 import 'shacl-js';
 import 'bootstrap4/dist/css/bootstrap.css';
 import css from './cpldviewer.css';
 
 
+
 global.$ = global.jQuery = $;
 
 // Acquire the VSCode API object for passing messages.
-const vscode = acquireVsCodeApi();
+var vscode;
+try {
+  vscode = acquireVsCodeApi();
+} catch (e) {
+  if (e instanceof ReferenceError) {
+      vscode = undefined;
+  }
+}
+
+
 
 // Display CPLD documents (HTML+JSONLD) showing content and data
 // Contributors: Rinke Hoekstra, Andy Townsend
@@ -41,6 +51,7 @@ const LED_RDFA = false;				// Whether to look for RDFa - should not be needed no
 
 const LED_CSS_HIGHLIGHT = "cpldcss-highlight";	// CSS class to highlight content
 const LED_CSS_BOX = "cpldcss-box";		// CSS class to box content
+const LED_CSS_DECORATED = "cpldcss-decorated"
 
 // Initialize an undefined value for a global variable. This is to be populated once document loading is complete.
 var HAS_PART = undefined;
@@ -65,23 +76,37 @@ const RDF_VALUE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#value";
 $(function () {
   // NB these are global variables
   documentIRI = $('meta[name="id"]').attr('content');
-
+  if ( documentIRI == undefined && vscode != undefined) {
+    vscode.postMessage({
+      command: 'alert',
+      text: "Could not find Document IRI in file. Are you sure it's an HTML file?"
+    });
+    return;
+  } else if (documentIRI == undefined) {
+    alert("Could not find Document IRI in file. Are you sure it's an HTML file?");
+    return;
+  }
 
   HAS_PART = $('meta[name="hasPartIRI"]').attr('url');
   if(HAS_PART == undefined) {
-    vscode.postMessage({
+    if ( vscode != undefined) {
+      vscode.postMessage({
         command: 'alert',
         text: "HAS_PART cannot be found, defaulting to http://schema.org/hasPart"
-    });
+      });
+    }
+    
     console.log("> HAS_PART cannot be found, defaulting to http://schema.org/hasPart");
     HAS_PART = "http://schema.org/hasPart";
   } else {
-    vscode.postMessage({
-      command: 'alert',
-      text: `HAS_PART set to ${HAS_PART}`
-    });
+    if ( vscode != undefined) { 
+      vscode.postMessage({
+        command: 'alert',
+        text: `HAS_PART set to ${HAS_PART}`
+      });
+    }
     console.log(`> HAS_PART set to ${HAS_PART}`);
-  }
+  } 
 
   // ALWAYS_RETRIEVE should be (boolean) true when the attribute value is (string) 'true', otherwise, it should remain false.
   console.log($('meta[name="alwaysDereferenceIRIs"]').attr('value'));
@@ -187,6 +212,7 @@ function prepareLED(datablockJSON) {
   });
 
   loadPromises.push(loadJSONLD(jsonArray));
+
   Promise.all(loadPromises).then((values) => {	// n.b. only a success handler
     console.log("Processing annotations");
     // Go over any annotations that have an XPathSelector with a TextRangeSelector in them.
@@ -278,16 +304,18 @@ function prepareLED(datablockJSON) {
       }
     });
 
+    // Add the decorated class to all elements with a 'resource' attribute.
+    $("*[resource]").addClass(LED_CSS_DECORATED);
 
     // Now HTML is decorated add hover behaviour
     // If hovering over an element with a @resource attribute, render the resource URI.
     $("*[resource]").hover(function () {
-      $(this).addClass(LED_CSS_BOX);
+      // $(this).addClass(LED_CSS_BOX);
       var uristr = $(this).attr('resource');
       showToastForUriStr(uristr);
       highlightToastForUriStr(uristr, true);
     }, function () {
-      $(this).removeClass(LED_CSS_BOX);
+      // $(this).removeClass(LED_CSS_BOX);
       var uristr = $(this).attr('resource');
       if (LED_AUTOHIDE_TOAST) {
         hideToastForUriStr(uristr)
@@ -542,31 +570,32 @@ function loadSchemaOrg(response){
 
 // Load the JSON-LD contained in the 'json' object into a triple store and return resolved Promise
 function loadJSONLD(json, rdfStore = store) {
-  
+  console.log("Loading JSON-LD")
+
   return new Promise((resolve, reject) => {
     try {
-      const data = JSON.stringify(json);
-      const mimeType = "application/ld+json";
-
-      try {
-        $rdf.parse(data, rdfStore, documentIRI, "application/ld+json", function () {
-          console.log("Successfully parsed: Statements in the graph: " + rdfStore.length);
-          if (rdfStore === store) {
-            $("#cpld-statement-count").text(store.length + " triples");
-          }
-          console.log(`NextId: ${$rdf.BlankNode.nextId}`);
-          $rdf.BlankNode.nextId = store.length + 1;
-          console.log(`NextId: ${$rdf.BlankNode.nextId}`);
-          resolve(rdfStore);
-        });
-      } catch (err) {
-        console.log("Failed to load JSON-LD into triplestore!");
-        console.log("used mimetype: " + mimeType);
-        console.log("used documentIRI: " + documentIRI);
-        console.log(data);
-        console.log(err);
-        reject(err);
-      }
+      // First convert to NQuads, then parse with rdflib.js as the latter cannot parse a JSON-LD document that is an Array.
+      jsonld.toRDF(json, {format: 'application/n-quads'}).then(function(data){
+        try {
+          $rdf.parse(data, rdfStore, documentIRI, 'application/n-quads', function () {
+            console.log("Successfully parsed: Statements in the graph: " + rdfStore.length);
+            if (rdfStore === store) {
+              $("#cpld-statement-count").text(store.length + " triples");
+            }
+            console.log(`NextId: ${$rdf.BlankNode.nextId}`);
+            $rdf.BlankNode.nextId = store.length + 1;
+            console.log(`NextId: ${$rdf.BlankNode.nextId}`);
+            resolve(rdfStore);
+          });
+        } catch (err) {
+          console.log("Failed to load JSON-LD into triplestore!");
+          console.log("used mimetype: " + mimeType);
+          console.log("used documentIRI: " + documentIRI);
+          console.log(data);
+          console.log(err);
+          reject(err);
+        }
+      });
     } catch (err) {
       console.log("Failed to convert JSON-LD to RDF!");
       console.log(json);

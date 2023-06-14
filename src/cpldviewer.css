@@ -70,10 +70,25 @@ a.object {
 }
 
 .cpldcss-box {
-  /* box-shadow: 5px 5px 10px 2px rgba(43,84,95, .7); */ /* AST */
-  /* box-shadow: 5px 5px 10px 2px rgba(43,84,95, .7); */
-  /* box-shadow: 0px 0px 2px 2px rgba(43,84,95, .2); */
-  background: rgba(250,105,0,.2); /* Unreal food pills */
+  background: rgba(200,200,200,.2); 
+  cursor: pointer;
+}
+
+.cpldcss-decorated:hover {
+  background: rgba(200,200,200,.2); 
+  cursor: pointer;
+}
+
+.cpldcss-decorated::before {
+  content: "{}";
+  font-weight: bold;
+  color: gainsboro;
+}
+
+.cpldcss-decorated:hover::before {
+  content: "{}";
+  font-weight: bold;
+  color: #FA6900;
 }
 
 .toast-body {
@@ -82,21 +97,11 @@ a.object {
 }
 
 .cpldcss-highlight {
-  /* border: 1; */ /* AST */
-  /* background: #E0E400; */ /* AST */
-  background: #FA6900; /* Unreal food pills */
+  background: #FA6900; 
 }
 
 .cpldcss-highlight .text-primary {
   color: white!important;
-}
-
-.cpldcss-DEFUNC {
-  box-shadow: 0px 0px 15px 2px rgba(103,210,231, 1);
-  box-shadow: 3px 3px 20px 1px rgba(100,124,0, 1);
-  box-shadow: 0px 0px 1px 1px rgba(200,224,0, 1);
-  box-shadow: -4px -4px +4px 0px rgba(250,105,0, 1);
-  box-shadow: -5px 0px 0px 0px #E0E400;
 }
 
 #cpld-body-left {
