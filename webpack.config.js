@@ -14,5 +14,9 @@ module.exports = {
         use: ["style-loader", "css-loader"],
       },
     ],
+  },
+  resolve: {
+    fallback: { "url": require.resolve("url/") },
+    fallback: { "stream": require.resolve("stream-browserify") }
   }
 };
