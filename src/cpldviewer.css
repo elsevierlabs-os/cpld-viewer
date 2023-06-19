@@ -31,49 +31,62 @@ body {
   font-family: "Atkinson Hyperlegible", Helvetica, sans-serif;
 }
 
+.resource {
+  display: inline-block;
+  padding: 3px 7px 3px 7px;
+  margin: 1px;
+  border-radius: 0.2em;
+  border: 0;
+  line-height: 1.2em;
+  overflow-wrap: break-word;
+  color: #444d56;
+}
+
+.uri {
+  cursor: pointer
+}
 
 /* Giant goldfish color palette */
-a.subject {
-  display: inline-block;
+.subject {
   background: #69D2E7;
-  padding: 3px 7px 3px 7px;
-  margin: 1px;
-  border-radius: 0.2em;
-  border: 0;
-  line-height: 1.2em;
-  white-space: nowrap;
-  color: #444d56;
 }
 
-a.predicate {
-  display: inline-block;
+.predicate {
   background: #A7DBD8;
-  padding: 3px 7px 3px 7px;
-  margin: 1px;
-  border-radius: 0.2em;
-  border: 0;
-  line-height: 1.2em;
-  white-space: nowrap;
-  color: #444d56;
 }
 
-a.object {
-  display: inline-block;
+.object {
   background: #E0E4CC;
-  padding: 3px 7px 3px 7px;
-  margin: 1px;
-  border-radius: 0.2em;
-  border: 0;
-  line-height: 1.2em;
-  white-space: nowrap;
-  color: #444d56;
 }
 
-.cpldcss-box {
-  /* box-shadow: 5px 5px 10px 2px rgba(43,84,95, .7); */ /* AST */
-  /* box-shadow: 5px 5px 10px 2px rgba(43,84,95, .7); */
-  /* box-shadow: 0px 0px 2px 2px rgba(43,84,95, .2); */
-  background: rgba(250,105,0,.2); /* Unreal food pills */
+.cpld-box {
+  background: rgba(170, 170, 170, 0.2);
+  cursor: pointer;
+}
+
+.cpld-decorated:hover {
+  background: rgba(170, 170, 170, 0.2); 
+  cursor: pointer;
+}
+
+
+.cpld-decorated::before {
+  content: "◊ ";
+  font-weight: bold;
+  color: gainsboro;
+}
+
+.cpld-decorated:hover::before {
+  color: #FA6900;
+}
+
+.cpld-triple-wrapper {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.toast {
+  max-width: 420px;
 }
 
 .toast-body {
@@ -81,22 +94,20 @@ a.object {
   overflow-y: scroll;
 }
 
-.cpldcss-highlight {
-  /* border: 1; */ /* AST */
-  /* background: #E0E400; */ /* AST */
-  background: #FA6900; /* Unreal food pills */
+.toast-header:hover {
+  background: #FA6900; 
 }
 
-.cpldcss-highlight .text-primary {
+.toast-header:hover .text-primary {
   color: white!important;
 }
 
-.cpldcss-DEFUNC {
-  box-shadow: 0px 0px 15px 2px rgba(103,210,231, 1);
-  box-shadow: 3px 3px 20px 1px rgba(100,124,0, 1);
-  box-shadow: 0px 0px 1px 1px rgba(200,224,0, 1);
-  box-shadow: -4px -4px +4px 0px rgba(250,105,0, 1);
-  box-shadow: -5px 0px 0px 0px #E0E400;
+.cpld-highlight {
+  background: #FA6900; 
+}
+
+.cpld-highlight .text-primary {
+  color: white!important;
 }
 
 #cpld-body-left {
@@ -104,7 +115,7 @@ a.object {
 }
 
 #cpld-body-right {
-  flex: 0 0 350px;
+  flex: 0 0 450px;
 }
 
 #cpld-body-content {
@@ -168,6 +179,12 @@ header span {
 #cpld-body-content a {
   color: rgb(12, 125, 187);
   max-width: 850px;
+}
+
+#cpld-document-uri {
+  max-width: 577px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* dl {

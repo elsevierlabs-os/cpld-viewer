@@ -1,19 +1,28 @@
 import $ from 'jquery';
 window.jQuery = $;
 window.$ = $;
-import 'jquery.scrollTo';
 import 'bootstrap4';
-import 'jsonld';
+const jsonld = require('jsonld');
 var $rdf = require('rdflib');
 import 'shacl-js';
 import 'bootstrap4/dist/css/bootstrap.css';
 import css from './cpldviewer.css';
 
 
+
 global.$ = global.jQuery = $;
 
 // Acquire the VSCode API object for passing messages.
-const vscode = acquireVsCodeApi();
+var vscode;
+try {
+  vscode = acquireVsCodeApi();
+} catch (e) {
+  if (e instanceof ReferenceError) {
+      vscode = undefined;
+  }
+}
+
+
 
 // Display CPLD documents (HTML+JSONLD) showing content and data
 // Contributors: Rinke Hoekstra, Andy Townsend
@@ -34,13 +43,14 @@ const LED_LAYOUT_TOP = 60;
 const LED_BREAKFAST_TOAST = true;		// Whether to have document toast at startup.
 const LED_AUTOHIDE_TOAST = false;		// Whether to hide toast on hover.out
 const LED_COMPACT_TRIPLES = true;		// Whether to suppress target IRI in toasts
-const LED_ELIPSIS_SOFT = 32;			// Length at which to elipsis URIs
-const LED_ELIPSIS_HARD = 20;			// Length at which to elipsis URIs
+const LED_ELIPSIS_SOFT = 20;			// Length at which to elipsis URIs
+const LED_ELIPSIS_HARD = 14;			// Length at which to elipsis URIs
 
 const LED_RDFA = false;				// Whether to look for RDFa - should not be needed now.
 
-const LED_CSS_HIGHLIGHT = "cpldcss-highlight";	// CSS class to highlight content
-const LED_CSS_BOX = "cpldcss-box";		// CSS class to box content
+const LED_CSS_HIGHLIGHT = "cpld cpld-highlight";	// CSS class to highlight content
+const LED_CSS_BOX = "cpld-box";		// CSS class to box content
+const LED_CSS_DECORATED = "cpld cpld-decorated"
 
 // Initialize an undefined value for a global variable. This is to be populated once document loading is complete.
 var HAS_PART = undefined;
@@ -65,26 +75,39 @@ const RDF_VALUE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#value";
 $(function () {
   // NB these are global variables
   documentIRI = $('meta[name="id"]').attr('content');
-
+  if ( documentIRI == undefined && vscode != undefined) {
+    vscode.postMessage({
+      command: 'alert',
+      text: "Could not find Document IRI in file. Are you sure it's an HTML file?"
+    });
+    return;
+  } else if (documentIRI == undefined) {
+    alert("Could not find Document IRI in file. Are you sure it's an HTML file?");
+    return;
+  }
 
   HAS_PART = $('meta[name="hasPartIRI"]').attr('url');
   if(HAS_PART == undefined) {
-    vscode.postMessage({
+    if ( vscode != undefined) {
+      vscode.postMessage({
         command: 'alert',
         text: "HAS_PART cannot be found, defaulting to http://schema.org/hasPart"
-    });
+      });
+    }
+    
     console.log("> HAS_PART cannot be found, defaulting to http://schema.org/hasPart");
     HAS_PART = "http://schema.org/hasPart";
   } else {
-    vscode.postMessage({
-      command: 'alert',
-      text: `HAS_PART set to ${HAS_PART}`
-    });
+    if ( vscode != undefined) { 
+      vscode.postMessage({
+        command: 'alert',
+        text: `HAS_PART set to ${HAS_PART}`
+      });
+    }
     console.log(`> HAS_PART set to ${HAS_PART}`);
-  }
+  } 
 
   // ALWAYS_RETRIEVE should be (boolean) true when the attribute value is (string) 'true', otherwise, it should remain false.
-  console.log($('meta[name="alwaysDereferenceIRIs"]').attr('value'));
   ALWAYS_RETRIEVE = ( $('meta[name="alwaysDereferenceIRIs"]').attr('value') === 'true' );
   console.log(ALWAYS_RETRIEVE);
 
@@ -98,8 +121,11 @@ $(function () {
 
       prepareLayout();
       prepareLED(datablockJSON);
+      credits();
     }
   }
+
+  
 });
 
 // Wrap the body content in 3 column layout, right column for toasts, left for aesthetics
@@ -112,7 +138,7 @@ function prepareLayout() {
   $("#cpld-body-right").append(`<div id="cpld-toast-panel"/>`);
 
   $("#cpld-toast-panel").css('position', 'fixed');
-  $("#cpld-toast-panel").css('top', `${LED_LAYOUT_TOP}px`);
+  $("#cpld-toast-panel").css('top', `0px`);
   $("#cpld-toast-panel").css('right', 0);
   $("#cpld-toast-panel").css('max-height', `calc(100% - ${LED_LAYOUT_TOP}px)`);
   $("#cpld-toast-panel").css('overflow-y', 'hidden');
@@ -124,30 +150,30 @@ function prepareLayout() {
 function prepareNavbar() {
   // The core of the navbar - branding and the toggle/menu button.  Collapses #cpld-navbar if width < lg
   const nav = $('' +
-    '<nav class="navbar navbar-light bg-light navbar-expand-lg fixed-top">' +
+    '<nav class="navbar navbar-light bg-light navbar-expand-md fixed-bottom">' +
     '<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#cpld-navbar" aria-controls="cpld-navbar" aria-expanded="false" aria-label="Toggle navigation">' +
     '<span class="navbar-toggler-icon"></span>' +
     '</button>' +
     '</nav>');
 
   // The responsive / collapsable part of the navbar
-  const navbarNav = $('<div class="collapse navbar-collapse" id="cpld-navbar"></div>');
+  const navbarNav = $('<div id="cpld-navbar"></div>');
 
   // Create nav controls for the responsive part: the doc IRI and the validate button
   const documentIRI = $('meta[name="id"]').attr('content');
   const navbarNavUl = $('' +
-    '<ul class="navbar-nav">' +
+    '<ul class="navbar-nav collapse navbar-collapse">' +
     '<li class="nav-item">' +
-    '<a id="cpld-document-uri" class="btn btn-outline-info mx-1" resource="' + documentIRI + '" onclick="this.blur();" href="#">' + documentIRI + '</a> ' +
+    '<a id="cpld-document-uri" class="btn btn-outline-info mx-1" alt="'+ documentIRI + '" resource="' + documentIRI + '" onclick="this.blur();" href="#">' + documentIRI + '</a> ' +
     '</li>' +
     '<li class="nav-item">' +
-    '<a id="cpld-statement-count" class="btn btn-info mx-1" onclick="this.blur();" href="#">0 triples</a> ' +
+    '<a id="cpld-statement-count" class="btn btn-info mx-1" alt="Number of triples" onclick="this.blur();" href="#">#0</a> ' +
     '</li>' +
+    // '<li class="nav-item">' +
+    // '<a id="cpld-validate-btn" class="btn btn-secondary mx-1" onclick="this.blur();" href="#">Validate: -/-</a>' +
+    // '</li>' +
     '<li class="nav-item">' +
-    '<a id="cpld-validate-btn" class="btn btn-secondary mx-1" onclick="this.blur();" href="#">Validate: -/-</a>' +
-    '</li>' +
-    '<li class="nav-item">' +
-    '<a id="cpld-clear-btn" class="btn btn-info float-left  mx-1" onclick="this.blur();" href="#">Clear' +
+    '<a id="cpld-clear-btn" class="btn btn-info float-left  mx-1" alt="Clear toasts" onclick="this.blur();" href="#">Clear' +
     '</li>' +
     '</ul>');
   navbarNav.append(navbarNavUl);
@@ -155,7 +181,7 @@ function prepareNavbar() {
   // Assemble and insert the navbar
   nav.append(navbarNav);
   $('body').prepend(nav);
-  $('body').css("padding-top", `${LED_LAYOUT_TOP}px`);
+  $('body').css("padding-bottom", `${LED_LAYOUT_TOP}px`);
 
   // Connect the validate button
   $('#cpld-validate-btn').click(function () {
@@ -187,6 +213,7 @@ function prepareLED(datablockJSON) {
   });
 
   loadPromises.push(loadJSONLD(jsonArray));
+
   Promise.all(loadPromises).then((values) => {	// n.b. only a success handler
     console.log("Processing annotations");
     // Go over any annotations that have an XPathSelector with a TextRangeSelector in them.
@@ -278,16 +305,17 @@ function prepareLED(datablockJSON) {
       }
     });
 
+    // Add the decorated class to all elements with a 'resource' attribute.
+    $("*[resource]").addClass(LED_CSS_DECORATED);
 
     // Now HTML is decorated add hover behaviour
     // If hovering over an element with a @resource attribute, render the resource URI.
-    $("*[resource]").hover(function () {
-      $(this).addClass(LED_CSS_BOX);
+    $("*[resource]").on("mouseover", function(){
       var uristr = $(this).attr('resource');
-      showToastForUriStr(uristr);
       highlightToastForUriStr(uristr, true);
-    }, function () {
-      $(this).removeClass(LED_CSS_BOX);
+    })
+    
+    $("*[resource]").on("mouseout", function(){
       var uristr = $(this).attr('resource');
       if (LED_AUTOHIDE_TOAST) {
         hideToastForUriStr(uristr)
@@ -295,6 +323,14 @@ function prepareLED(datablockJSON) {
         highlightToastForUriStr(uristr, false);
       }
     });
+
+    // Only show toast on click to make the interface less jittery.
+    $("*[resource]").on("click", function(){
+      var uristr = $(this).attr('resource');
+      showToastForUriStr(uristr);
+      highlightToastForUriStr(uristr, true);
+    })
+
 
     if (LED_BREAKFAST_TOAST) {
       showToastForUriStr(documentIRI);
@@ -309,7 +345,7 @@ function prepareLED(datablockJSON) {
   }
 
   // Show number of statements loaded (promises may update this further later)
-  $("#cpld-statement-count").text(store.length + " triples");
+  $("#cpld-statement-count").text("#" + store.length);
 }
 
 function decorateElement(resourceURI, annotationURI = undefined) {
@@ -502,13 +538,21 @@ function promiseJSON(uristr) {
       .done((json) => { console.log(`DONE: Have data from ${uristr}`); resolve(json) })
       .fail((err) => { 
         console.log(`FAIL: Failed to get data from ${uristr}`); 
-        const contentType = err.getResponseHeader('content-type');
+        console.log(err.getAllResponseHeaders());
+        var contentType = err.getResponseHeader('content-type');
+        console.log(contentType);
         if(contentType == 'text/html'){
           console.log("This is an HTML response. We may be dealing with a Schema.org response");
           resolve(loadSchemaOrg(err.responseText));
-        } else if (contentType == 'text/turtle') {
+        } else if (contentType == 'text/turtle' || contentType == 'text/turtle; charset=utf-8') {
           console.log("This is a turtle response.");
-
+          console.log(err.responseText);
+          $rdf.parse(err.responseText, store, documentIRI, "text/turtle", function(){
+            console.log("Parsed turtle into store directly...");
+            // Resolve with an empty JSON-LD document.
+            resolve(undefined);
+          });
+          
         } else {
           console.log("definitely not Schema.org");
           console.log(contentType);
@@ -542,31 +586,32 @@ function loadSchemaOrg(response){
 
 // Load the JSON-LD contained in the 'json' object into a triple store and return resolved Promise
 function loadJSONLD(json, rdfStore = store) {
-  
+  console.log("Loading JSON-LD")
+
   return new Promise((resolve, reject) => {
     try {
-      const data = JSON.stringify(json);
-      const mimeType = "application/ld+json";
-
-      try {
-        $rdf.parse(data, rdfStore, documentIRI, "application/ld+json", function () {
-          console.log("Successfully parsed: Statements in the graph: " + rdfStore.length);
-          if (rdfStore === store) {
-            $("#cpld-statement-count").text(store.length + " triples");
-          }
-          console.log(`NextId: ${$rdf.BlankNode.nextId}`);
-          $rdf.BlankNode.nextId = store.length + 1;
-          console.log(`NextId: ${$rdf.BlankNode.nextId}`);
-          resolve(rdfStore);
-        });
-      } catch (err) {
-        console.log("Failed to load JSON-LD into triplestore!");
-        console.log("used mimetype: " + mimeType);
-        console.log("used documentIRI: " + documentIRI);
-        console.log(data);
-        console.log(err);
-        reject(err);
-      }
+      // First convert to NQuads, then parse with rdflib.js as the latter cannot parse a JSON-LD document that is an Array.
+      jsonld.toRDF(json, {format: 'application/n-quads'}).then(function(data){
+        try {
+          $rdf.parse(data, rdfStore, documentIRI, 'application/n-quads', function () {
+            console.log("Successfully parsed: Statements in the graph: " + rdfStore.length);
+            if (rdfStore === store) {
+              $("#cpld-statement-count").text("#" +store.length);
+            }
+            console.log(`NextId: ${$rdf.BlankNode.nextId}`);
+            $rdf.BlankNode.nextId = store.length + 1;
+            console.log(`NextId: ${$rdf.BlankNode.nextId}`);
+            resolve(rdfStore);
+          });
+        } catch (err) {
+          console.log("Failed to load JSON-LD into triplestore!");
+          console.log("used mimetype: " + mimeType);
+          console.log("used documentIRI: " + documentIRI);
+          console.log(data);
+          console.log(err);
+          reject(err);
+        }
+      });
     } catch (err) {
       console.log("Failed to convert JSON-LD to RDF!");
       console.log(json);
@@ -629,8 +674,10 @@ function retrieveAndShow(uristr) {
     
     promiseJSON(proxied_uristr).then((json) => {
       // Load the JSON-LD response into the store
-      console.log("Adding retrieved data to store");
-      return loadJSONLD(json);		// Returns Promise for graph
+      if (json != undefined) {
+        console.log("Adding retrieved data to store");
+        return loadJSONLD(json);		// Returns Promise for graph
+      }
     }).then((graph) => {
       console.log(`Showing toast for ${uristr}`)
       $('#cpld-statement-count').removeClass('btn-warning').addClass('btn-info');
@@ -687,7 +734,7 @@ function highlightToastForUriStr(uristr, highlight) {
 
 // Generate a dummy anchor with the appropriate style
 function uriDummy(str, cls) {
-  return $(`<a uri="#" class="${cls}">${str}</a>`);
+  return $(`<div uri="#" class="${cls}">${str}</div>`);
 }
 
 // Generate an anchor element that is styled according to the cls variable.
@@ -697,20 +744,23 @@ function uriAnchor(uri, cls) {
   var uriA;
 
   if (uri.termType == "Literal") {
-    uriA = $(`<a uri="#" class="${cls}">${uriN3}</a>`)
+    uriA = $(`<div uri="#" class="${cls}">${uriN3}</div>`)
   } else {
-    uriA = $(`<a uri="${uri.uri}" class="${cls}">${uriN3}</a>`);
+    uriA = $(`<div uri="${uri.uri}" class="${cls} uri">${uriN3}</div>`);
 
     // Add a click handler for remote URIs
-    uriA.click(function () {
+    uriA.on("click", function () {
       var u = $(this).attr('uri');
       retrieveAndShow(u);
+      console.log("Performing a scroll to "+u);
+      $("*[resource='" + u + "']").get(0).scrollIntoView({ block: "start", inline: "nearest" }) // Simple bring element into view, no library needed
+      
     });
 
     uriA.hover(function () {
-      $("*[resource='" + uri.uri + "']").addClass(LED_CSS_HIGHLIGHT); // Mouse in
+      $("*[resource='" + uri.uri + "']").addClass(LED_CSS_BOX); // Mouse in
     }, function () {
-      $("*[resource='" + uri.uri + "']").removeClass(LED_CSS_HIGHLIGHT); // Mouse out
+      $("*[resource='" + uri.uri + "']").removeClass(LED_CSS_BOX); // Mouse out
     });
   }
 
@@ -727,39 +777,47 @@ function renderTriplesForToast(uri) {
 
   if (predicates_objects.length > 0 || subjects_predicates.length > 0) {
     var message = $('<div/>');
-    for (var i = 0; i < predicates_objects.length; i++) {
-      var po = predicates_objects[i];
+    message.addClass("cpld-wrapper-wrapper");
 
-      var p = $('<div/>');
-      if (LED_COMPACT_TRIPLES) {
-        p.append(uriDummy("<i>this</i>", 'subject'));
-      } else {
-        let shorturi = safeShortURI(uri, (LED_COMPACT_TRIPLES ? LED_ELIPSIS_SOFT : LED_ELIPSIS_HARD));
-        p.append(uriDummy(shorturi, 'subject'));
+    if (predicates_objects.length > 0) {
+      var powrapper = $('<div/>');
+      powrapper.addClass('cpld-triple-wrapper');
+      for (var i = 0; i < predicates_objects.length; i++) {
+        var po = predicates_objects[i];
+  
+        if (LED_COMPACT_TRIPLES) {
+          powrapper.append(uriDummy("<i>this</i>", 'resource subject'));
+        } else {
+          let shorturi = safeShortURI(uri, (LED_COMPACT_TRIPLES ? LED_ELIPSIS_SOFT : LED_ELIPSIS_HARD));
+          powrapper.append(uriDummy(shorturi, 'resource subject'));
+        }
+        powrapper.append(uriAnchor(po.predicate, 'resource predicate'));
+        powrapper.append(uriAnchor(po.object, 'resource object'));
       }
-      p.append(uriAnchor(po.predicate, 'predicate'));
-      p.append(uriAnchor(po.object, 'object'));
-      message.append(p);
+      message.append(powrapper);
     }
-
+    
     if (predicates_objects.length > 0 && subjects_predicates.length > 0) {
       message.append($('<hr class="my-1"/>'));
     }
-    for (var i = 0; i < subjects_predicates.length; i++) {
-      var sp = subjects_predicates[i];
 
-      var p = $('<div/>');
-      p.append(uriAnchor(sp.subject, 'subject'));
-      p.append(uriAnchor(sp.predicate, 'predicate'));
-      if (LED_COMPACT_TRIPLES) {
-        p.append(uriDummy("<i>this</i>", 'object'));
-      } else {
-        let shorturi = safeShortURI(uri, (LED_COMPACT_TRIPLES ? LED_ELIPSIS_SOFT : LED_ELIPSIS_HARD));
-        p.append(uriDummy(shorturi, 'object'));
+    if(subjects_predicates.length > 0) {
+      var spwrapper = $('<div/>');
+      spwrapper.addClass('cpld-triple-wrapper');
+      for (var i = 0; i < subjects_predicates.length; i++) {
+        var sp = subjects_predicates[i];
+  
+        spwrapper.append(uriAnchor(sp.subject, 'resource subject'));
+        spwrapper.append(uriAnchor(sp.predicate, 'resource predicate'));
+        if (LED_COMPACT_TRIPLES) {
+          spwrapper.append(uriDummy("<i>this</i>", 'resource object'));
+        } else {
+          let shorturi = safeShortURI(uri, (LED_COMPACT_TRIPLES ? LED_ELIPSIS_SOFT : LED_ELIPSIS_HARD));
+          spwrapper.append(uriDummy(shorturi, 'resource object'));
+        }
       }
-      message.append(p);
     }
-
+    message.append(spwrapper);
     return message;
   } else {
     console.log(`No triples found for ${uri}`);
@@ -783,13 +841,12 @@ function makeToastForURI(uri) {
     var header = makeToastHeader(uri.uri, uriN3);
     header.on("click", function () {
       // Scroll to the element
-      $(".container").scrollTo($("*[resource='" + uri.uri + "']"));
-      $("*[resource='" + uri.uri + "']").get(0).scrollIntoView();	// Simple bring element into view, no library needed
+      $("*[resource='" + uri.uri + "']").get(0).scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" }) // Simple bring element into view, no library needed
     });
     var toast = makeToast(toastId, header, message);
-    toast.hover(function () {
+    toast.on("mouseover", function () {
       $("*[resource='" + uri.uri + "']").addClass(LED_CSS_BOX); // Mouse in
-    }, function () {
+    }).on("mouseout", function () {
       $("*[resource='" + uri.uri + "']").removeClass(LED_CSS_BOX); // Mouse out
     });
 
@@ -805,8 +862,14 @@ function makeToastForURI(uri) {
 // Pop up a simple toast for credits
 function credits() {
   $("#cpld-credit-toast").remove();
-  var header = makeToastHeader("credits", "Credits");
-  var message = $('<div><div><b>Linked Elsevier Document Viewer</b></div><div>Rinke Hoekstra</div><div>Andy Townsend</div></div>');
+  var header = makeToastHeader("credits", "CPLD Viewer");
+  var message = $(`
+    <div>
+      <p>By <b>Rinke Hoekstra</b> and <b>Andy Townsend</b>.</p>
+      <p>Copyright Elsevier B.V. and NISO<br/></p>
+      <p><a href="https://github.com/elsevierlabs-os/cpld-viewer">GitHub (Elsevier)</a><p>
+      <p><a href="https://github.com/niso-standards/cpld">GitHub (NISO)</a><p>
+    </div>`);
   var toast = makeToast("cpld-credit-toast", header, message);
   $("#cpld-toast-panel").prepend(toast);
   $(toast).toast('show');
