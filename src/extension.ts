@@ -6,6 +6,9 @@ import { JSDOM } from 'jsdom';
 import { config } from 'process';
 
 
+
+
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -19,60 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// Now provide the implementation of the command with registerCommand
 		// The commandId parameter must match the command field in package.json
 		vscode.commands.registerCommand('cpld.show', () => {
-
-			const editor = vscode.window.activeTextEditor;
-
-			if (editor) {
-				let document = editor.document ;
-
-				
-				const documentName = document.fileName;
-
-				const mediaPath = vscode.Uri.file(path.join(path.dirname(document.fileName), 'media'));
-				const extensionMediaPath = vscode.Uri.file(path.join(context.extensionPath, 'media'));
-
-				var localResourceRoots = [extensionMediaPath];
-				let config = vscode.workspace.getConfiguration("cpld");
-				// If either allowLocalStyles or allowLocalImages is true, we allow access to the `media` directory relative to the HTML file.
-				if(config.get('allowLocalStyles') || config.get('allowLocalImages')){
-					vscode.window.showWarningMessage(`Security warning. Allow local styles is ${config.get('allowLocalStyles')}, and allow local images is ${config.get('allowLocalImages')}`);
-					localResourceRoots.push(mediaPath);
-				}
-
-
-				// Create and show panel
-				const panel = vscode.window.createWebviewPanel(
-					'cpld',
-					`CPLD: ${documentName} `,
-					vscode.ViewColumn.Beside,
-					{
-						// Only allow access to the 'media' directory in the extension, the 'media' directory in the directory of the file being loaded is optional (see above).
-						localResourceRoots: localResourceRoots,
-						enableScripts: true
-					}
-				);
-
-				// Handle messages from the webview
-				panel.webview.onDidReceiveMessage(
-				  message => {
-					switch (message.command) {
-					  case 'alert': 
-						vscode.window.showWarningMessage(message.text);
-						return;
-					}
-				  },
-				  undefined,
-				  context.subscriptions
-				);
-
-				// And set its HTML content
-				getCPLDWebviewContent(panel.webview, context.extensionUri, document).then(function(html) {
-					panel.webview.html = html;
-				});
-			}
-
-			return;
-
+			CPLDViewer.createOrShow(context);
 		})
 	);
 
@@ -82,13 +32,97 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {} 
 
 
+class CPLDViewer {
+
+	private static _panels: Map<string, vscode.WebviewPanel> = new Map<string, vscode.WebviewPanel>();
+
+
+	public static createOrShow(context: vscode.ExtensionContext) {
+
+		const editor = vscode.window.activeTextEditor;
+
+		if (editor) {
+			let document = editor.document ;
+
+			// Get the local filename.
+			const documentName = document.uri.path.split('/').slice(-1).join();
+
+			const mediaPath = vscode.Uri.file(path.join(path.dirname(document.fileName), 'media'));
+			const extensionMediaPath = vscode.Uri.file(path.join(context.extensionPath, 'media'));
+
+			var localResourceRoots = [extensionMediaPath];
+			let config = vscode.workspace.getConfiguration("cpld");
+			// If either allowLocalStyles or allowLocalImages is true, we allow access to the `media` directory relative to the HTML file.
+			if(config.get('allowLocalStyles') || config.get('allowLocalImages')){
+				vscode.window.showWarningMessage(`Security warning. Allow local styles is ${config.get('allowLocalStyles')}, and allow local images is ${config.get('allowLocalImages')}`);
+				localResourceRoots.push(mediaPath);
+			}
+
+			
+
+			var panel:vscode.WebviewPanel;
+			var existingPanel = CPLDViewer._panels.get(documentName);
+			if (existingPanel != undefined) {
+				panel = existingPanel ;
+				panel.title = `CPLD: ${documentName} `;
+			} else {
+				// Create and show panel
+				panel = vscode.window.createWebviewPanel(
+					'cpld',
+					`CPLD: ${documentName} `,
+					vscode.ViewColumn.Active,
+					{
+						// Only allow access to the 'media' directory in the extension, the 'media' directory in the directory of the file being loaded is optional (see above).
+						localResourceRoots: localResourceRoots,
+						enableScripts: true,
+						enableCommandUris: true
+					}
+				);
+				CPLDViewer._panels.set(documentName,panel);
+
+				panel.onDidDispose( () => {
+					CPLDViewer._panels.delete(documentName);
+				})
+			}
+			
+
+			// Handle messages from the webview
+			panel.webview.onDidReceiveMessage(
+			  message => {
+				switch (message.command) {
+				  case 'alert': 
+					vscode.window.showWarningMessage(message.text);
+					return;
+				  case 'alert': 
+					vscode.window.showWarningMessage(message.text);
+					return;
+				}
+			  },
+			  undefined,
+			  context.subscriptions
+			);
+
+			// And set its HTML content
+			getCPLDWebviewContent(panel.webview, context.extensionUri, document).then(function(html) {
+				panel.webview.html = html;
+			});
+
+			panel.reveal();
+		}
+
+		return;
+
+	}
+
+}
+
+
 
 async function getCPLDWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri, document: vscode.TextDocument): Promise<string> {
 	// Get configuration parameters, such as Proxy, default hasPart relation, etc.
 	let config = vscode.workspace.getConfiguration("cpld");
 	let proxyEnabled = config.get('proxyEnabled', false);
 	let proxyURLprefix = config.get('proxyURLprefix');
-	let hasPartIRI = config.get('hasPartIRI');
 	let allowLocalImages = config.get('allowLocalImages', false);
 	let allowLocalStyles = config.get('allowLocalStyles', false);
 	let alwaysDereferenceIRIs = config.get('alwaysDereferenceIRIs', false);
@@ -165,13 +199,6 @@ async function getCPLDWebviewContent(webview: vscode.Webview, extensionUri: vsco
 		vscode.window.showInformationMessage(`Proxy enabled through ${proxyURLprefix}`);
 		
 		let meta:string = `\n<meta name="proxyURLprefix" url="${proxyURLprefix}"/>`
-		scriptsAndCSS += meta
-	} 
-
-	if (hasPartIRI) {
-		vscode.window.showInformationMessage(`Using the ${hasPartIRI} property for finding document parts.`);
-		
-		let meta:string = `\n<meta name="hasPartIRI" url="${hasPartIRI}"/>`
 		scriptsAndCSS += meta
 	} 
 

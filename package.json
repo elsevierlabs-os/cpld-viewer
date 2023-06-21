@@ -6,7 +6,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "repository": "https://github.com/elsevierlabs-os/cpld-viewer.git",
   "icon": "media/img/cpld-icon.png",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "engines": {
     "vscode": "^1.61.0"
   },
@@ -21,11 +21,21 @@
     "commands": [
       {
         "command": "cpld.show",
-        "title": "CPLD Viewer"
+        "title": "CPLD Viewer",
+        "when": "editorLangId == html"
       }
     ],
     "configuration": {
       "title": "CPLD Viewer",
+      "keybindings": [
+        {
+          "command": "cpld.show",
+          "key": "ctrl+alt+p",
+          "mac": "ctrl+alt+p",
+          "when": "editorTextFocus"
+        }
+
+      ],
       "properties": {
         "cpld.allowLocalStyles": {
           "type": "boolean",
@@ -56,11 +66,6 @@
           "type": "string",
           "default": "https://your.linked.data.proxy/example.browse?uri=",
           "description": "Proxy URL prefix to use when dereferencing Linked Data. Needs to be CORS enabled."
-        },
-        "cpld.hasPartIRI": {
-          "type": "string",
-          "default": "https://schema.org/hasPart",
-          "description": "IRI of the hasPart property to use."
         }
       }
     }
