@@ -39,17 +39,17 @@
       "properties": {
         "cpld.allowLocalStyles": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Should the extension allow the loading of local CSS styles from a 'media' folder relative to the HTML file? (NB: this is less secure)"
         },
         "cpld.allowLocalImages": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Should the extension allow the loading of local images from a 'media' folder relative to the HTML file? (NB: this is less secure)"
         },
         "cpld.alwaysDereferenceIRIs": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Should the extension attempt to dereference every clicked IRI?"
         },
         "cpld.loadLocalContexts": {
@@ -59,7 +59,7 @@
         },
         "cpld.proxyEnabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Should the extension use a proxy to dereference Linked Data?"
         },
         "cpld.proxyURLprefix": {
