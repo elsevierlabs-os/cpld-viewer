@@ -60,8 +60,14 @@ body {
 }
 
 .cpld-box {
-  background: rgba(170, 170, 170, 0.2);
+  background: rgba(170, 170, 170, 0.4);
   cursor: pointer;
+}
+
+.cpld-box::before {
+  content: "◊ ";
+  font-weight: bold;
+  color: #FA6900 !important;
 }
 
 .cpld-decorated:hover {
