@@ -52,9 +52,6 @@ const LED_CSS_HIGHLIGHT = "cpld cpld-highlight";	// CSS class to highlight conte
 const LED_CSS_BOX = "cpld-box";		// CSS class to box content
 const LED_CSS_DECORATED = "cpld cpld-decorated"
 
-// Initialize an undefined value for a global variable. This is to be populated once document loading is complete.
-var HAS_PART = undefined;
-
 const OA_HAS_TARGET = "http://www.w3.org/ns/oa#hasTarget"; // Open Annotation hasTarget URI
 const OA_HAS_BODY = "http://www.w3.org/ns/oa#hasBody"; // Open Annotation hasBody URI
 const OA_HAS_SELECTOR = "http://www.w3.org/ns/oa#hasSelector"; // Open Annotation hasSelector URI
@@ -85,27 +82,6 @@ $(function () {
     alert("Could not find Document IRI in file. Are you sure it's an HTML file?");
     return;
   }
-
-  HAS_PART = $('meta[name="hasPartIRI"]').attr('url');
-  if(HAS_PART == undefined) {
-    if ( vscode != undefined) {
-      vscode.postMessage({
-        command: 'alert',
-        text: "HAS_PART cannot be found, defaulting to http://schema.org/hasPart"
-      });
-    }
-    
-    console.log("> HAS_PART cannot be found, defaulting to http://schema.org/hasPart");
-    HAS_PART = "http://schema.org/hasPart";
-  } else {
-    if ( vscode != undefined) { 
-      vscode.postMessage({
-        command: 'alert',
-        text: `HAS_PART set to ${HAS_PART}`
-      });
-    }
-    console.log(`> HAS_PART set to ${HAS_PART}`);
-  } 
 
   // ALWAYS_RETRIEVE should be (boolean) true when the attribute value is (string) 'true', otherwise, it should remain false.
   ALWAYS_RETRIEVE = ( $('meta[name="alwaysDereferenceIRIs"]').attr('value') === 'true' );
@@ -285,11 +261,8 @@ function prepareLED(datablockJSON) {
   
       });
   
-
-  
       // Decorate the HTML with "resource" attributes
       // Go over all parts of the document
-      let hasPart = $rdf.sym(HAS_PART);
       let hasBody = $rdf.sym(OA_HAS_BODY);
   
       let allTriples = store.statementsMatching(undefined, undefined, undefined, undefined);

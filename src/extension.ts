@@ -123,7 +123,6 @@ async function getCPLDWebviewContent(webview: vscode.Webview, extensionUri: vsco
 	let config = vscode.workspace.getConfiguration("cpld");
 	let proxyEnabled = config.get('proxyEnabled', false);
 	let proxyURLprefix = config.get('proxyURLprefix');
-	let hasPartIRI = config.get('hasPartIRI');
 	let allowLocalImages = config.get('allowLocalImages', false);
 	let allowLocalStyles = config.get('allowLocalStyles', false);
 	let alwaysDereferenceIRIs = config.get('alwaysDereferenceIRIs', false);
@@ -200,13 +199,6 @@ async function getCPLDWebviewContent(webview: vscode.Webview, extensionUri: vsco
 		vscode.window.showInformationMessage(`Proxy enabled through ${proxyURLprefix}`);
 		
 		let meta:string = `\n<meta name="proxyURLprefix" url="${proxyURLprefix}"/>`
-		scriptsAndCSS += meta
-	} 
-
-	if (hasPartIRI) {
-		vscode.window.showInformationMessage(`Using the ${hasPartIRI} property for finding document parts.`);
-		
-		let meta:string = `\n<meta name="hasPartIRI" url="${hasPartIRI}"/>`
 		scriptsAndCSS += meta
 	} 
 
