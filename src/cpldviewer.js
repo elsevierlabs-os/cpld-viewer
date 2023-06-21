@@ -114,16 +114,21 @@ $(function () {
   store = $rdf.graph();
   serializer = $rdf.Serializer(store);
 
-  if (documentIRI != undefined) {
-    var datablockJSON = $("script[type='application/ld+json']");
-    if (datablockJSON != undefined && datablockJSON.length > 0) {
-      console.log(`Found ${datablockJSON.length} data blocks`);
+  var datablockJSON = $("script[type='application/ld+json']");
+  if (datablockJSON != undefined && datablockJSON.length > 0) {
+    console.log(`Found ${datablockJSON.length} data blocks`);
 
+    prepareLED(datablockJSON).then( () => {
+
+      console.log("Preparing Layout");
       prepareLayout();
-      prepareLED(datablockJSON);
       credits();
-    }
-  }
+      if (LED_BREAKFAST_TOAST) {
+        showToastForUriStr(documentIRI);
+      }
+
+    });    
+  } 
 
   
 });
@@ -202,150 +207,165 @@ function prepareNavbar() {
 // Read in the JSON-LDs and any RDFa and add interactivity
 function prepareLED(datablockJSON) {
 
-  var loadPromises = [];
-  var jsonArray = []
-  datablockJSON.each(function (index) {
-    console.log(`Preparing data block ${index}`);
-    var json = JSON.parse($(this).text());
-    suggestContextPrefixes(json, serializer);
-    
-    jsonArray.push(json);
-  });
-
-  loadPromises.push(loadJSONLD(jsonArray));
-
-  Promise.all(loadPromises).then((values) => {	// n.b. only a success handler
-    console.log("Processing annotations");
-    // Go over any annotations that have an XPathSelector with a TextRangeSelector in them.
-    let hasTarget = $rdf.sym(OA_HAS_TARGET);
-    let annotations = store.each(undefined, hasTarget);
-
-    annotations.forEach(function (annotation) {
-      const annotationURI = annotation.value;
-
-      const targets = store.each(annotation, hasTarget)
-      targets.forEach(function (target) {
-        var selectors = store.each(target, $rdf.sym(OA_HAS_SELECTOR));
-        if(selectors != undefined) {
-          selectors.forEach(function (selector) {
-            let types = store.each(selector, $rdf.sym(RDF_TYPE));
-            for (const i in types) {
-              if (types[i].value === OA_XPATH_SELECTOR) {
-                let xpathValue = store.any(selector, $rdf.sym(RDF_VALUE)).value;
-                let matches = document.evaluate(xpathValue, document, null, XPathResult.ANY_TYPE, null)
-  
-                let parentNode = matches.iterateNext()
-                console.log(parentNode)
-                // Make sure we only continue if the XPath expression evaluates to a node.
-                while (parentNode) {
-                  let refinements = store.each(selector, $rdf.sym(OA_REFINED_BY));
-                  refinements.forEach(function (positionSelector) {
-                    var start = store.any(positionSelector, $rdf.sym(OA_START)).value;
-                    var end = store.any(positionSelector, $rdf.sym(OA_END)).value;
-  
-                    let fragmentId = `annotation-target-${slugify(annotationURI)}`;
-  
-                    // Wrap the range in a span, and decorate with the correct attributes
-                    setRange(parentNode, fragmentId, start, end, annotationURI);
-                  });
-  
-                  // TODO: Cannot iterate as the document changes when a new span is inserted. Need to fix this to support multiple matches to the XPath expression.
-                  // parentNode = matches.iterateNext()
-                  parentNode = undefined;
-                }
-  
-  
-              }
-            }
+  return new Promise((resolve, reject) => {
+    var loadPromises = [];
+    var jsonArray = []
+    datablockJSON.each(function (index) {
+      console.log(`Preparing data block ${index}`);
+      try {
+        var json = JSON.parse($(this).text());
+        suggestContextPrefixes(json, serializer);
+        
+        jsonArray.push(json);
+      } catch (e) {
+        if ( vscode != undefined) { 
+          vscode.postMessage({
+            command: 'alert',
+            text: `Encountered an issue when loading the JSON. Perhaps it's not syntactically correct?`
           });
         }
-      });
-
-
-
-    });
-
-    // DEBUG: Write all quads to the console
-    // let all = store.statementsMatching(undefined, undefined, undefined, undefined);
-    // all.forEach(function (candidate) {
-    //   console.log(candidate)
-    // })
-
-    // Decorate the HTML with "resource" attributes
-    // Go over all parts of the document
-    let hasPart = $rdf.sym(HAS_PART);
-    let hasBody = $rdf.sym(OA_HAS_BODY);
-
-    let partTriples = store.statementsMatching(undefined, hasPart, undefined, undefined);
-    let bodyTriples = store.statementsMatching(undefined, hasBody, undefined, undefined);
-    let targetTriples = store.statementsMatching(undefined, hasTarget, undefined, undefined);
-
-    console.log("Starting decoration of parts");
-    partTriples.forEach(function (candidate) {
-      try {
-        let resourceURI = candidate.object.value;
-        decorateElement(resourceURI);
-      } catch (err) {
-        console.log("Attempting to decorate non-existent element");
-        console.log(err);
+        console.log(e);
+        console.log(`Encountered an issue when loading the JSON. Perhaps it's not syntactically correct?`);
       }
+      
     });
-
-    let candidates = bodyTriples.concat(targetTriples);
-
-    console.log("Starting decoration of annotation body/target");
-    candidates.forEach(function (candidate) {
-      try {
-        let resourceURI = candidate.object.value;
-        let annotationURI = candidate.subject.value;
-        decorateElement(resourceURI, annotationURI);
-      } catch (err) {
-        console.log("Attempting to decorate non-existent element or body/target is not a uri");
-        console.log(err);
-      }
-    });
-
-    // Add the decorated class to all elements with a 'resource' attribute.
-    $("*[resource]").addClass(LED_CSS_DECORATED);
-
-    // Now HTML is decorated add hover behaviour
-    // If hovering over an element with a @resource attribute, render the resource URI.
-    $("*[resource]").on("mouseover", function(){
-      var uristr = $(this).attr('resource');
-      highlightToastForUriStr(uristr, true);
-    })
+  
+    loadPromises.push(loadJSONLD(jsonArray));
+  
+    Promise.all(loadPromises).then((values) => {	// n.b. only a success handler
+      console.log("Processing annotations");
+      // Go over any annotations that have an XPathSelector with a TextRangeSelector in them.
+      let hasTarget = $rdf.sym(OA_HAS_TARGET);
+      let annotations = store.each(undefined, hasTarget);
+  
+      annotations.forEach(function (annotation) {
+        const annotationURI = annotation.value;
+  
+        const targets = store.each(annotation, hasTarget)
+        targets.forEach(function (target) {
+          var selectors = store.each(target, $rdf.sym(OA_HAS_SELECTOR));
+          if(selectors != undefined) {
+            selectors.forEach(function (selector) {
+              let types = store.each(selector, $rdf.sym(RDF_TYPE));
+              for (const i in types) {
+                if (types[i].value === OA_XPATH_SELECTOR) {
+                  let xpathValue = store.any(selector, $rdf.sym(RDF_VALUE)).value;
+                  console.log("XPATH");
+                  console.log(xpathValue);
+                  let matches = document.evaluate(xpathValue, document, null, XPathResult.ANY_TYPE, null)
+                  console.log(matches)
+                  let parentNode = matches.iterateNext()
+                  console.log(parentNode)
+                  // Make sure we only continue if the XPath expression evaluates to a node.
+                  while (parentNode) {
+                    let refinements = store.each(selector, $rdf.sym(OA_REFINED_BY));
+                    refinements.forEach(function (positionSelector) {
+                      var start = store.any(positionSelector, $rdf.sym(OA_START)).value;
+                      var end = store.any(positionSelector, $rdf.sym(OA_END)).value;
     
-    $("*[resource]").on("mouseout", function(){
-      var uristr = $(this).attr('resource');
-      if (LED_AUTOHIDE_TOAST) {
-        hideToastForUriStr(uristr)
-      } else {
-        highlightToastForUriStr(uristr, false);
+                      let fragmentId = `annotation-target-${slugify(annotationURI)}`;
+    
+                      // Wrap the range in a span, and decorate with the correct attributes
+                      setRange(parentNode, fragmentId, start, end, annotationURI);
+                    });
+    
+                    // TODO: Cannot iterate as the document changes when a new span is inserted. Need to fix this to support multiple matches to the XPath expression.
+                    // parentNode = matches.iterateNext()
+                    parentNode = undefined;
+                  }
+    
+    
+                }
+              }
+            });
+          }
+        });
+  
+  
+  
+      });
+  
+
+  
+      // Decorate the HTML with "resource" attributes
+      // Go over all parts of the document
+      let hasPart = $rdf.sym(HAS_PART);
+      let hasBody = $rdf.sym(OA_HAS_BODY);
+  
+      let allTriples = store.statementsMatching(undefined, undefined, undefined, undefined);
+      let bodyTriples = store.statementsMatching(undefined, hasBody, undefined, undefined);
+      let targetTriples = store.statementsMatching(undefined, hasTarget, undefined, undefined);
+  
+  
+  
+      console.log("Starting decoration of everything");
+      allTriples.forEach(function (candidate) {
+        try {
+          decorateElement(candidate.object.value);
+          decorateElement(candidate.subject.value);
+        } catch (err) {
+          console.log("Attempting to decorate non-existent element");
+          console.log(err);
+        }
+      });
+  
+      let candidates = bodyTriples.concat(targetTriples);
+  
+      console.log("Starting decoration of annotation body/target");
+      candidates.forEach(function (candidate) {
+        try {
+          let resourceURI = candidate.object.value;
+          let annotationURI = candidate.subject.value;
+          decorateElement(resourceURI, annotationURI);
+        } catch (err) {
+          console.log("Attempting to decorate non-existent element or body/target is not a uri");
+          console.log(err);
+        }
+      });
+  
+      // Add the decorated class to all elements with a 'resource' attribute.
+      $("*[resource]").addClass(LED_CSS_DECORATED);
+  
+      // Now HTML is decorated add hover behaviour
+      // If hovering over an element with a @resource attribute, render the resource URI.
+      $("*[resource]").on("mouseover", function(){
+        var uristr = $(this).attr('resource');
+        highlightToastForUriStr(uristr, true);
+      })
+      
+      $("*[resource]").on("mouseout", function(){
+        var uristr = $(this).attr('resource');
+        if (LED_AUTOHIDE_TOAST) {
+          hideToastForUriStr(uristr)
+        } else {
+          highlightToastForUriStr(uristr, false);
+        }
+      });
+  
+      // Only show toast on click to make the interface less jittery.
+      $("*[resource]").on("click", function(){
+        var uristr = $(this).attr('resource');
+        showToastForUriStr(uristr);
+        highlightToastForUriStr(uristr, true);
+      })
+  
+  
+
+
+      if (LED_RDFA) {
+        // Not expected with current spec, but load any RDFa found in the file
+        var p = new $rdf.RDFaProcessor(store, { 'base': document.baseURI });
+        p.process(document);
       }
+    
+      // Show number of statements loaded (promises may update this further later)
+      $("#cpld-statement-count").text("#" + store.length);
+  
+      resolve();
     });
-
-    // Only show toast on click to make the interface less jittery.
-    $("*[resource]").on("click", function(){
-      var uristr = $(this).attr('resource');
-      showToastForUriStr(uristr);
-      highlightToastForUriStr(uristr, true);
-    })
-
-
-    if (LED_BREAKFAST_TOAST) {
-      showToastForUriStr(documentIRI);
-    }
+  
 
   });
-
-  if (LED_RDFA) {
-    // Not expected with current spec, but load any RDFa found in the file
-    var p = new $rdf.RDFaProcessor(store, { 'base': document.baseURI });
-    p.process(document);
-  }
-
-  // Show number of statements loaded (promises may update this further later)
-  $("#cpld-statement-count").text("#" + store.length);
 }
 
 function decorateElement(resourceURI, annotationURI = undefined) {
@@ -708,7 +728,13 @@ function showToastForUriStr(uristr) {
     let toastID = toast.attr("id");
     $("#cpld-toast-panel").prepend(toast);
     $(toast).toast('show');
-    $(`#${toastID}`).get(0).scrollIntoView(false);  // Make sure our toast can be seen
+    try {
+      $(`#${toastID}`).get(0).scrollIntoView(false);  // Make sure our toast can be seen
+    } catch (e) {
+      console.log(e);
+      console.log(`Could not scroll to toast with id ${toastID}`);
+    }
+    
   } else {
     console.log(`Failed to make toast for ${uristr}`);
   }
@@ -756,6 +782,14 @@ function uriAnchor(uri, cls) {
       $("*[resource='" + u + "']").get(0).scrollIntoView({ block: "start", inline: "nearest" }) // Simple bring element into view, no library needed
       
     });
+
+    uriA.on("dblclick", function(){
+      if (vscode != undefined) {
+        console.log("Double click " + uri.uri)
+        const devUri = vscode.Uri.parse(uri.uri);
+        vscode.commands.executeCommand('vscode.open', devUri);
+      }
+    })
 
     uriA.hover(function () {
       $("*[resource='" + uri.uri + "']").addClass(LED_CSS_BOX); // Mouse in
@@ -873,7 +907,11 @@ function credits() {
   var toast = makeToast("cpld-credit-toast", header, message);
   $("#cpld-toast-panel").prepend(toast);
   $(toast).toast('show');
-  $(`#${toastID}`).get(0).scrollIntoView();  // Make sure our toast can be seen
+  $(`#cpld-credit-toast`).get(0).scrollIntoView();  // Make sure our toast can be seen
+
+  setTimeout(() => {
+    $("#cpld-credit-toast").toast('hide');
+  }, 5000)
 }
 
 // --- General toast functions ---
