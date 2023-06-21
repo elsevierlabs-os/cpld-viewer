@@ -36,9 +36,6 @@ Set this to `true` if you want the viewer to allow loading local CSS into the HT
 ### Always Dereference IRIs
 When set to `true`, every time an IRI resource is clicked in the UI, the extension will attempt to dereference the IRI and populate the internal store with the retrieved triples.
 
-### Has Part IRI
-The viewer uses a "has part" relation to determine what the relevant parts of the document are that need to be used to show associated triples. The default is `https://schema.org/hasPart`. If your data does not show up in the viewer, make sure the "has part" relation in the setting matches the one in your data.
-
 ### Load Local Contexts
 Standard JSON-LD libraries will only load files through dereferencing, or assume that the JSON-LD file is hosted on an HTTP server. Setting this option to `true` will make the extension attempt to load JSON-LD context files from a local path. This means that a JSON-LD file can refer to its context using an abbreviated IRI.
 
