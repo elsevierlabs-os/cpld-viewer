@@ -16,6 +16,8 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('cpld-viewer is active');
+	
+	let activeEditor = vscode.window.activeTextEditor;
 
 	context.subscriptions.push(
 		// The command has been defined in the package.json file
@@ -25,6 +27,12 @@ export function activate(context: vscode.ExtensionContext) {
 			CPLDViewer.createOrShow(context);
 		})
 	);
+
+	
+
+	vscode.workspace.onDidSaveTextDocument(event => {
+		CPLDViewer.update(event, context);
+	}, null, context.subscriptions);
 
 }
 
@@ -36,6 +44,14 @@ class CPLDViewer {
 
 	private static _panels: Map<string, vscode.WebviewPanel> = new Map<string, vscode.WebviewPanel>();
 
+	public static update(document: vscode.TextDocument, context: vscode.ExtensionContext) {
+
+		const documentName = document.uri.path.split('/').slice(-1).join();
+
+		if (CPLDViewer._panels.has(documentName)){
+			CPLDViewer.createOrShow(context);
+		};
+	}
 
 	public static createOrShow(context: vscode.ExtensionContext) {
 
