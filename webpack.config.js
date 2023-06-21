@@ -7,6 +7,7 @@ module.exports = {
     filename: 'cpldviewer.js',
     path: path.resolve(__dirname, 'media/js'),
   },
+  devtool: "source-map",
   module: {
     rules: [
       {
