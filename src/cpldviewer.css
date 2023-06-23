@@ -91,6 +91,23 @@ body {
     grid-template-columns: repeat(3, 1fr);
 }
 
+.error-container {
+  min-height: 300px;
+  min-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error {
+  border: 1px black;
+  background-color: #fa690029;
+  color: black;
+  border-radius: 5px;
+  padding: 3em;
+  text-align: center;
+}
+
 .toast {
   max-width: 420px;
 }
