@@ -44,6 +44,8 @@ class CPLDViewer {
 
 	private static _panels: Map<string, vscode.WebviewPanel> = new Map<string, vscode.WebviewPanel>();
 
+	private static _jsonld_to_html: Map<string, string> = new Map<string, string>();
+
 	public static update(document: vscode.TextDocument, context: vscode.ExtensionContext) {
 
 		const documentName = document.uri.path.split('/').slice(-1).join();
@@ -91,7 +93,8 @@ class CPLDViewer {
 						// Only allow access to the 'media' directory in the extension, the 'media' directory in the directory of the file being loaded is optional (see above).
 						localResourceRoots: localResourceRoots,
 						enableScripts: true,
-						enableCommandUris: true
+						enableCommandUris: true,
+						enableFindWidget: true
 					}
 				);
 				CPLDViewer._panels.set(documentName,panel);
@@ -109,9 +112,14 @@ class CPLDViewer {
 				  case 'alert': 
 					vscode.window.showWarningMessage(message.text);
 					return;
-				  case 'alert': 
-					vscode.window.showWarningMessage(message.text);
+				  case 'error': 
+					vscode.window.showErrorMessage(message.text, {modal: true});
 					return;
+				  case 'success':
+					vscode.window.showInformationMessage(message.text);
+					return;
+				  case 'open':
+					vscode.env.openExternal(vscode.Uri.parse(message.text));
 				}
 			  },
 			  undefined,
@@ -121,9 +129,10 @@ class CPLDViewer {
 			// And set its HTML content
 			getCPLDWebviewContent(panel.webview, context.extensionUri, document).then(function(html) {
 				panel.webview.html = html;
+				panel.reveal();
 			});
 
-			panel.reveal();
+			
 		}
 
 		return;
