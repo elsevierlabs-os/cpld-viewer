@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "linked-data-proxy"
+version = "0.1.0"
+description = ""
+authors = ["Rinke Hoekstra <r.hoekstra@elsevier.com>"]
+readme = "README.md"
+packages = [{include = "linked_data_proxy"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31.0"
+flask = "^2.3.2"
+flask-cors = "^3.0.10"
+pyyaml = "^6.0"
+rfc3987 = "^1.3.8"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
