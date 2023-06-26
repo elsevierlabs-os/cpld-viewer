@@ -6,7 +6,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "repository": "https://github.com/elsevierlabs-os/cpld-viewer.git",
   "icon": "media/img/cpld-icon.png",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "engines": {
     "vscode": "^1.61.0"
   },

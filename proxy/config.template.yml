@@ -1,0 +1,14 @@
+apis:
+  API_1_NAME:
+    regex: "https://data.elsevier.com/health/(core/)?(?P<id>.*)"
+    token_url: "URL FOR RETRIEVING WEBTOKEN"
+    key: "SECRET KEY TO OBTAIN TOKEN"
+    secret: "SECRET TO OBTAIN TOKEN"
+    api_url: "API URL. The <id> value is concatenated at the end of this URL."
+rewrites:
+  REWRITE_1_NAME:
+    regex: "https://some.example.iri/namespace/(?P<id>.*)"
+    rewrite_url_prefix: "https://some.different.example/iri/namespace/to/which/to/redirect/"
+  REWRITE_2_NAME:
+    regex: "https://some.other.example.iri/namespace/(?P<id>.*)"
+    rewrite_url_prefix: "https://some.other.different.example/iri/namespace/to/which/to/redirect/"
