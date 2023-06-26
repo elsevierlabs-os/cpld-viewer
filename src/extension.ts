@@ -16,8 +16,6 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('cpld-viewer is active');
-	
-	let activeEditor = vscode.window.activeTextEditor;
 
 	context.subscriptions.push(
 		// The command has been defined in the package.json file
@@ -44,7 +42,7 @@ class CPLDViewer {
 
 	private static _panels: Map<string, vscode.WebviewPanel> = new Map<string, vscode.WebviewPanel>();
 
-	private static _jsonld_to_html: Map<string, string> = new Map<string, string>();
+	private static _jsonld_to_html: Map<vscode.Uri, Array<vscode.TextDocument>> = new Map<vscode.Uri, Array<vscode.TextDocument>>();
 
 	public static update(document: vscode.TextDocument, context: vscode.ExtensionContext) {
 
@@ -52,88 +50,139 @@ class CPLDViewer {
 
 		if (CPLDViewer._panels.has(documentName)){
 			CPLDViewer.createOrShow(context);
-		};
+		} else if (CPLDViewer._jsonld_to_html.has(document.uri)) {
+			// This is a JSON-LD document that has been edited.
+			const html_documents = CPLDViewer._jsonld_to_html.get(document.uri);
+			html_documents?.forEach( doc => {
+				CPLDViewer.createOrShow(context, doc)
+			});
+		}
 	}
 
-	public static createOrShow(context: vscode.ExtensionContext) {
-
-		const editor = vscode.window.activeTextEditor;
-
-		if (editor) {
-			let document = editor.document ;
-
-			// Get the local filename.
-			const documentName = document.uri.path.split('/').slice(-1).join();
-
-			const mediaPath = vscode.Uri.file(path.join(path.dirname(document.fileName), 'media'));
-			const extensionMediaPath = vscode.Uri.file(path.join(context.extensionPath, 'media'));
-
-			var localResourceRoots = [extensionMediaPath];
-			let config = vscode.workspace.getConfiguration("cpld");
-			// If either allowLocalStyles or allowLocalImages is true, we allow access to the `media` directory relative to the HTML file.
-			if(config.get('allowLocalStyles') || config.get('allowLocalImages')){
-				vscode.window.showWarningMessage(`Security warning. Allow local styles is ${config.get('allowLocalStyles')}, and allow local images is ${config.get('allowLocalImages')}`);
-				localResourceRoots.push(mediaPath);
-			}
-
+	// Adds the html_filename to the array of related files for a jsonld_filename  so that we can monitor for save events. 
+	public static addJSONLDPath(html_filename: vscode.TextDocument, jsonld_file_path: vscode.Uri){
+		let html_filename_array = CPLDViewer._jsonld_to_html.get(jsonld_file_path);
+		if (html_filename_array == undefined){
+			html_filename_array = new Array<vscode.TextDocument>();
+		} 
 			
+		if (html_filename_array.indexOf(html_filename) == -1){
+			html_filename_array.push(html_filename);
 
-			var panel:vscode.WebviewPanel;
-			var existingPanel = CPLDViewer._panels.get(documentName);
-			if (existingPanel != undefined) {
-				panel = existingPanel ;
-				panel.title = `CPLD: ${documentName} `;
-			} else {
-				// Create and show panel
-				panel = vscode.window.createWebviewPanel(
-					'cpld',
-					`CPLD: ${documentName} `,
-					vscode.ViewColumn.Active,
-					{
-						// Only allow access to the 'media' directory in the extension, the 'media' directory in the directory of the file being loaded is optional (see above).
-						localResourceRoots: localResourceRoots,
-						enableScripts: true,
-						enableCommandUris: true,
-						enableFindWidget: true
-					}
-				);
-				CPLDViewer._panels.set(documentName,panel);
-
-				panel.onDidDispose( () => {
-					CPLDViewer._panels.delete(documentName);
-				})
-			}
-			
-
-			// Handle messages from the webview
-			panel.webview.onDidReceiveMessage(
-			  message => {
-				switch (message.command) {
-				  case 'alert': 
-					vscode.window.showWarningMessage(message.text);
-					return;
-				  case 'error': 
-					vscode.window.showErrorMessage(message.text, {modal: true});
-					return;
-				  case 'success':
-					vscode.window.showInformationMessage(message.text);
-					return;
-				  case 'open':
-					vscode.env.openExternal(vscode.Uri.parse(message.text));
-				}
-			  },
-			  undefined,
-			  context.subscriptions
-			);
-
-			// And set its HTML content
-			getCPLDWebviewContent(panel.webview, context.extensionUri, document).then(function(html) {
-				panel.webview.html = html;
-				panel.reveal();
-			});
-
-			
+			CPLDViewer._jsonld_to_html.set(jsonld_file_path, html_filename_array);
 		}
+
+	}
+
+	public static createOrShow(context: vscode.ExtensionContext, document?: vscode.TextDocument) {
+
+		// Determine the document to load, either from the function call, or through the context.
+		if (document == undefined) {
+			const editor = vscode.window.activeTextEditor;
+			if (editor != undefined){
+				document = editor.document
+			} else {
+				vscode.window.showErrorMessage("Could not determine document to load");
+				console.error("Could not determine document to load");
+				return;
+			}
+		} 
+		
+
+		// Get the local filename.
+		const documentName = document.uri.path.split('/').slice(-1).join();
+
+		const mediaPath = vscode.Uri.file(path.join(path.dirname(document.fileName), 'media'));
+		const extensionMediaPath = vscode.Uri.file(path.join(context.extensionPath, 'media'));
+
+		var localResourceRoots = [extensionMediaPath];
+		let config = vscode.workspace.getConfiguration("cpld");
+		// If either allowLocalStyles or allowLocalImages is true, we allow access to the `media` directory relative to the HTML file.
+		if(config.get('allowLocalStyles') || config.get('allowLocalImages')){
+			vscode.window.showWarningMessage(`Security warning. Allow local styles is ${config.get('allowLocalStyles')}, and allow local images is ${config.get('allowLocalImages')}`);
+			localResourceRoots.push(mediaPath);
+		}
+
+		
+
+		var panel:vscode.WebviewPanel;
+		var existingPanel = CPLDViewer._panels.get(documentName);
+		if (existingPanel != undefined) {
+			panel = existingPanel ;
+			panel.title = `CPLD: ${documentName} `;
+		} else {
+			// Create and show panel
+			panel = vscode.window.createWebviewPanel(
+				'cpld',
+				`CPLD: ${documentName} `,
+				vscode.ViewColumn.Active,
+				{
+					// Only allow access to the 'media' directory in the extension, the 'media' directory in the directory of the file being loaded is optional (see above).
+					localResourceRoots: localResourceRoots,
+					enableScripts: true,
+					enableCommandUris: true,
+					enableFindWidget: true
+				}
+			);
+			CPLDViewer._panels.set(documentName,panel);
+
+			panel.onDidDispose( () => {
+				CPLDViewer._panels.delete(documentName);
+
+				// Make sure that the CPLD document is no longer listed as belonging to a JSON-LD file, 
+				// otherwise a save to the JSON-LD file would trigger the CPLD Viewer to open again.
+				CPLDViewer._jsonld_to_html.forEach( (html_docs, jsonld_doc) => {
+					console.log(JSON.stringify(html_docs));
+					console.log(jsonld_doc);
+
+
+					if (document != undefined){
+						var new_html_docs:Array<vscode.TextDocument> = new Array<vscode.TextDocument>();
+
+						for (let html_doc of html_docs) {
+							if (html_doc != document) {
+								new_html_docs.push(html_doc);
+							} 
+							// Skip the document
+						}
+
+						CPLDViewer._jsonld_to_html.set(jsonld_doc, new_html_docs);
+						console.log(JSON.stringify(new_html_docs));
+						console.log(JSON.stringify(CPLDViewer._jsonld_to_html.get(jsonld_doc)));
+					}
+				});
+			})
+		}
+		
+
+		// Handle messages from the webview
+		panel.webview.onDidReceiveMessage(
+			message => {
+			switch (message.command) {
+				case 'alert': 
+				vscode.window.showWarningMessage(message.text);
+				return;
+				case 'error': 
+				vscode.window.showErrorMessage(message.text, {modal: true});
+				return;
+				case 'success':
+				vscode.window.showInformationMessage(message.text);
+				return;
+				case 'open':
+				vscode.env.openExternal(vscode.Uri.parse(message.text));
+			}
+			},
+			undefined,
+			context.subscriptions
+		);
+
+		// And set its HTML content
+		getCPLDWebviewContent(panel.webview, context.extensionUri, document).then(function(html) {
+			panel.webview.html = html;
+			panel.reveal();
+		});
+
+		
 
 		return;
 
@@ -154,7 +203,6 @@ async function getCPLDWebviewContent(webview: vscode.Webview, extensionUri: vsco
 
 	const documentText:string = document.getText();
 	const documentFilename:string = document.fileName;
-
 
 	if(!(documentFilename.toLowerCase().endsWith(".html") || documentFilename.toLowerCase().endsWith('.htm'))) {
 		vscode.window.showWarningMessage(`This extension only works with HTML files. The file '${documentFilename}' does not look like html`);
@@ -242,7 +290,8 @@ async function getCPLDWebviewContent(webview: vscode.Webview, extensionUri: vsco
 			const json_filename_path = path.join(dirname, json_filename);
 
 			const json_document = await vscode.workspace.openTextDocument(json_filename_path);
-
+			// Add the documentName (html filename) to the mapping for this jsonld document so that we can monitor for updates.
+			CPLDViewer.addJSONLDPath(document, json_document.uri)
 			
 			var json_text = JSON.stringify(await getJSONwithEmbeddedContext(json_document));
 
