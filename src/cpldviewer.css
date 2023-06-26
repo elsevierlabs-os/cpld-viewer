@@ -59,6 +59,12 @@ body {
   background: #E0E4CC;
 }
 
+.object.literal {
+  background: #e0e4cc7e !important;
+  font-style: oblique;
+  cursor:text;
+}
+
 .cpld-box {
   background: rgba(170, 170, 170, 0.4);
   cursor: pointer;

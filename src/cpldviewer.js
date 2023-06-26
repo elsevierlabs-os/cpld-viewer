@@ -776,7 +776,7 @@ function uriAnchor(uri, cls) {
   var anchorDiv;
 
   if (uri.termType == "Literal") {
-    anchorDiv = $(`<div uri="#" class="${cls}">${uriN3}</div>`)
+    anchorDiv = $(`<div uri="#" class="${cls} literal">${uriN3}</div>`)
   } else {
 
     var resourceURI = uri.uri;
