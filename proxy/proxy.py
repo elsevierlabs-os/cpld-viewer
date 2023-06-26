@@ -9,7 +9,10 @@ app = Flask(__name__)
 CORS(app)
 
 
-config = yaml.safe_load(open("config.yml"));
+try:
+    config = yaml.safe_load(open("config.yml"));
+except:
+    config = {'apis': {}, 'rewrites': {}}
 
 @app.route("/browse", methods=["GET"])
 def browse():
