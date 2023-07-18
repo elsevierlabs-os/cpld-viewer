@@ -572,6 +572,8 @@ function retrieveDataPromise(uristr) {
         } else if (contentType == 'text/html') {
           let json_array = processEmbeddedJSON(data);
           resolve(loadJSONLD(json_array, store));
+        } else {
+          resolve(loadJSONLD({}, store));
         }
       });  
     })
